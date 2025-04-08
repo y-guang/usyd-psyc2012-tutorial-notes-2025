@@ -1,0 +1,246 @@
+---
+title: "t-test"
+author: "spike"
+date: "2025-04-07"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  # echo = FALSE, 
+  warning = FALSE, 
+  error = FALSE, 
+  message = FALSE,
+  fig.align = "center",
+  out.width = "80%"
+  )
+```
+
+```{r, echo=FALSE}
+library(tidyverse)
+theme_set(jtools::theme_apa())
+```
+
+## Recap Lecture: the t-test
+
+<!--
+comment template
+-->
+
+t-test as a case of proof by contradiction
+
+| phase | proof by contradiction | t-test |
+|-------|-----------------------|--------|
+| assume | all sheep are white | $H_0$: $\mu = 0$ |
+| test | find a black sheep | $p(\bar{x} | \mu = 0)$ |
+| reject | contradiction | $p = 0.0001$, unlikely! |
+| conclude | some sheep are black | $h_a$: $\mu \ne 0$ |
+
+## Step1: all sheep are white
+
+$H_0$: the population mean is 0. So, in perfect world:
+
+```{r, echo=FALSE}
+config <- tibble(
+  x_len = 1000,
+  N = 5,
+)
+
+density_df <-
+  with(
+    config,
+    {
+      population <- tibble(
+        x = seq(-3, 3, length.out = x_len),
+        y = dnorm(x),
+        name = "population"
+      )
+      
+      t_dist <- tibble(
+        x = seq(-3, 3, length.out = x_len),
+        y = dt(x, df = N - 1),
+        name = "sample_mean"
+      )
+      
+      population %>%
+        bind_rows(t_dist)
+    }
+  )
+
+density_df %>%
+ggplot(aes(x = x, y = y)) +
+      geom_line() +
+      facet_grid(~ name, scales = "free")
+```
+
+## Step1: all sheep are white
+
+If we draw a sample of 5:
+
+```{r, echo=FALSE}
+set.seed(123)
+sample_df <- 
+  with(
+    config,
+    {
+      tibble(
+        x = rnorm(N, mean = 0, sd = 1),
+        name = "population"
+      )
+    }
+  )
+
+ggplot() +
+  geom_line(
+    data = density_df,
+    aes(x = x, y = y),
+    alpha = 0.5
+  ) +
+  facet_grid(~ name, scales = "free") +
+  geom_point(
+    data = sample_df,
+    aes(x = x, y = 0),
+    size = 1,
+    color = "red"
+  ) +
+  geom_vline(
+    data = sample_df %>%
+      summarise(
+        mean = mean(x),
+        name = "sample_mean"
+      ),
+    aes(xintercept = mean),
+    color = "blue",
+    linetype = "dashed"
+  ) 
+```
+
+## Step2: find a black sheep
+
+What if we find a black sheep?
+
+- Think about how is it plausible that we find this if our assumption is true?
+
+```{r, echo=FALSE}
+set.seed(123)
+sample_df <- 
+  with(
+    config,
+    {
+      tibble(
+        x = rnorm(N, mean = 2, sd = 1),
+        name = "population"
+      )
+    }
+  )
+
+ggplot() +
+  geom_line(
+    data = density_df,
+    aes(x = x, y = y),
+    alpha = 0.5
+  ) +
+  facet_grid(~ name, scales = "free") +
+  geom_point(
+    data = sample_df,
+    aes(x = x, y = 0),
+    size = 1,
+    color = "red"
+  ) +
+  geom_vline(
+    data = sample_df %>%
+      summarise(
+        mean = mean(x),
+        name = "sample_mean"
+      ),
+    aes(xintercept = mean),
+    color = "blue",
+    linetype = "dashed"
+  ) 
+```
+
+## Step3: reject the null hypothesis
+
+I cannot believe that they are randomly drawn from a population with mean 0.
+
+```{r, echo=FALSE}
+set.seed(123)
+sample_df <- 
+  with(
+    config,
+    {
+      tibble(
+        x = rnorm(N, mean = 2, sd = 1),
+        name = "population"
+      )
+    }
+  )
+
+ggplot() +
+  geom_line(
+    data = density_df,
+    aes(x = x, y = y),
+    alpha = 0.5
+  ) +
+  facet_grid(~ name, scales = "free") +
+  geom_point(
+    data = sample_df,
+    aes(x = x, y = 0),
+    size = 1,
+    color = "red"
+  ) +
+  geom_vline(
+    data = sample_df %>%
+      summarise(
+        mean = mean(x),
+        name = "sample_mean"
+      ),
+    aes(xintercept = mean),
+    color = "blue",
+    linetype = "dashed"
+  ) +
+  geom_ribbon(
+    data = density_df %>%
+      filter(name == "sample_mean") %>%
+      filter(x < qnorm(0.95)),
+    aes(x = x, ymin = 0, ymax = y),
+    fill = "blue",
+    alpha = 0.2
+  ) +
+  geom_text(
+    data = tibble(content = "95% lower tail", name = "sample_mean"),
+    aes(x = 0, y = 0.1, label = content),
+    size = 5,
+    color = "black",
+  )
+```
+
+## Three types of t-tests
+
+| phase | one-sample | paired | independent |
+|-------|------------|--------|-------------|
+| want | $H_1$: $\mu \ne 0$ | $H_1$: $\mu_{\text{diff}} \ne 0$ | $H_1$: $\mu_1 \ne \mu_2$ |
+| assume | $H_0$: $\mu = 0$ | $H_0$: $\mu_{\text{diff}} = 0$ | $H_0$: $\mu_1 = \mu_2$ |
+
+- paired $\Leftrightarrow$  one-sample: paired is a special case of one-sample.
+
+## Recap Lecture: the effect size
+
+A fancy way to say: if we find a black sheep, how black is it?
+
+- So, it is significant, how big is the difference?
+- Example: if a group of people have IQ of 101, which is significant, but not very interesting.
+
+## Recap Lecture: the effect size
+
+Find the similarity:
+
+$$
+\text{Cohen’s } d = \frac{\bar{x}_1 - \bar{x}_2}{s_{\text{pooled}}}
+$$
+
+$$
+\text{Z-score} = \frac{\bar{x} - \mu}{s_{\text{sample}}}
+$$
+
+dividing by standard deviation is the common trick to standardize the magnitude.

@@ -1,0 +1,424 @@
+---
+title: "Descriptive Statistics and the Normal Distribution"
+author: "spike"
+date: "2025-03-10"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  # echo = FALSE, 
+  warning = FALSE, 
+  error = FALSE, 
+  message = FALSE
+  )
+```
+
+```{r, echo=FALSE}
+library(tidyverse)
+library(gganimate)
+theme_set(jtools::theme_apa())
+```
+
+## Central Tendency
+
+| index | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+|X | 2 | 3 | 4 | 4 | 5 |
+
+- Mean: $\frac{\sum X}{N} = \frac{2 + 3 + 4 + 4 + 5}{5} = 3.6$
+- Median: third value = 4
+- Mode: Most frequent value = 4
+
+## Central Tendency
+
+Why we need central tendency? Consider a group of students with the following marks:
+
+```{r, echo=FALSE}
+marks_params <- tibble(
+  N = 18,
+  mu = 0.7,
+  phi = 5,
+  alpha = mu * phi,
+  beta = (1 - mu) * phi
+)
+
+set.seed(123)
+marks <- with(
+  marks_params,
+  {
+    marks <- tibble(
+      mark = round(rbeta(N, alpha, beta) * 100, 1),
+      selected = FALSE
+    ) %>%
+      bind_rows(
+        tibble(
+          mark = mu * 100,
+          selected = TRUE
+        )
+      )
+    marks
+  }
+)
+
+marks %>%
+  ggplot(aes(x = mark)) +
+  geom_point(y = 0.5, alpha = 0.5) +
+  xlim(0, 100)
+```
+
+## Central Tendency
+
+```{r, echo=FALSE}
+marks %>%
+  ggplot(aes(x = mark)) +
+  geom_point(y = 0.5, alpha = 0.5) +
+  geom_vline(aes(xintercept = mean(mark)), color = "red") +
+  geom_text(
+    aes(x = mean(mark), y = 0.8, label = "Mean"),
+    color = "red"
+  ) +
+  geom_vline(aes(xintercept = median(mark)), color = "blue") +
+  geom_text(
+    aes(x = median(mark), y = 0.7, label = "Median"),
+    color = "blue"
+  ) +
+  ylim(0, 1) +
+  theme(
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank()
+  ) +
+  xlim(0, 100)
+```
+
+## Central Tendency - Manipulate One Score
+
+```{r, echo=FALSE}
+marks %>%
+  ggplot(aes(x = mark)) +
+  geom_point(y = 0.5, alpha = 0.5, aes(color = selected)) +
+  scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black")) +
+  geom_vline(aes(xintercept = mean(mark)), color = "red") +
+  geom_text(
+    aes(x = mean(mark), y = 0.8, label = "Mean"),
+    color = "red"
+  ) +
+  geom_vline(aes(xintercept = median(mark)), color = "blue") +
+  geom_text(
+    aes(x = median(mark), y = 0.7, label = "Median"),
+    color = "blue"
+  ) +
+  ylim(0, 1) +
+  theme(
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank(),
+    legend.position = "none"
+  ) +
+  xlim(0, 100)
+```
+
+## Central Tendency - Manipulate One Score
+
+```{r, echo=FALSE}
+marks %>%
+  expand_grid(
+    tibble(
+      manipulated = seq(1, 99)
+    )
+  ) %>%
+  mutate(
+    mark = if_else(selected, manipulated, mark),
+  ) %>%
+  group_by(manipulated) %>%
+  mutate(
+    mark_mean = mean(mark),
+    mark_median = median(mark)
+  ) %>%
+  ggplot(aes(x = mark)) +
+  geom_point(y = 0.5, alpha = 0.5, aes(color = selected)) +
+  scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black")) +
+  geom_vline(aes(xintercept = mark_mean), color = "red") +
+  geom_text(
+    aes(x = mark_mean, y = 0.8, label = "Mean"),
+    color = "red"
+  ) +
+  geom_vline(aes(xintercept = mark_median), color = "blue") +
+  geom_text(
+    aes(x = mark_median, y = 0.7, label = "Median"),
+    color = "blue"
+  ) +
+  ylim(0, 1) +
+  theme(
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank(),
+    legend.position = "none"
+  ) +
+  xlim(0, 100) +
+  transition_states(manipulated)
+```
+
+## Dispersion Tendency
+
+| index | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+|X | 2 | 3 | 4 | 4 | 5 |
+
+- Variance: $\sigma^2_X = \frac{\sum (X - \mu_X)^2}{N}$
+$= \frac{(2-3.6)^2 + (3-3.6)^2 + (4-3.6)^2 + (4-3.6)^2 + (5-3.6)^2}{5} = 1.04$
+- Standard Deviation: $\sigma_X = \sqrt{\sigma^2_X} = \sqrt{1.04} = 1.02$
+
+## Dispersion Tendency - Intuition
+
+$\sigma^2_X = \frac{\sum (X - \mu_X)^2}{N}$
+
+- $X_i - \mu_X$: Distance
+- $(X_i - \mu_X)^2$: Positive Distance Measure
+- $\frac{\sum (X - \mu_X)^2}{N}$: Average Positive Distance Measure
+
+## Dispersion Tendency - Intuition
+
+| index | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+|X | 3 | 5 | 8 | 9 |
+
+```{r, echo=FALSE}
+dispersion_demo_df <- tribble(
+  ~x, ~y,
+  3, 4,
+  5, 5,
+  8, 6,
+  9, 7
+)
+
+dispersion_demo_config <- summarise(
+  .data = dispersion_demo_df,
+  mean_y = mean(y),
+)
+
+dispersion_demo_df %>%
+  ggplot(aes(x = x, y = mean(y))) +
+  geom_point() +
+  geom_vline(aes(xintercept = mean(x)), color = "red", linetype = "dashed") +
+  geom_text(
+    aes(x = mean(x), y = 0.35, label = "Mean"),
+    color = "red"
+  ) +
+  ylim(dispersion_demo_config$mean_y - 5, dispersion_demo_config$mean_y + 5) +
+  xlim(0, 10) +
+  theme(
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank()
+  ) +
+  coord_fixed()
+```
+
+## Dispersion Tendency - Intuition
+
+```{r, echo=FALSE}
+dispersion_demo_df %>%
+  ggplot(aes(x = x, y = y)) +
+  geom_point() +
+  geom_vline(aes(xintercept = mean(x)), color = "red", linetype = "dashed") +
+  ylim(dispersion_demo_config$mean_y - 5, dispersion_demo_config$mean_y + 5) +
+  xlim(0, 10) +
+  theme(
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank()
+  ) +
+  coord_fixed()
+```
+
+## Dispersion Tendency - Intuition
+
+$$
+X - \mu_X
+$$
+
+```{r, echo=FALSE}
+dispersion_demo_df %>%
+  ggplot(aes(x = x, y = y)) +
+  geom_point() +
+  geom_vline(aes(xintercept = mean(x)), color = "red", linetype = "dashed") +
+  geom_segment(aes(x = x, xend = mean(x), y = y, yend = y), color = "blue") +
+  ylim(dispersion_demo_config$mean_y - 5, dispersion_demo_config$mean_y + 5) +
+  xlim(0, 10) +
+  theme(
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank()
+  ) +
+  coord_fixed()
+```
+
+## Dispersion Tendency - Intuition
+
+$$
+(X - \mu_X)^2
+$$
+
+```{r, echo=FALSE}
+dispersion_sq_df <- tribble(
+  ~x, ~y, ~xmin, ~xmax, ~ymin, ~ymax,
+  3, 4, 3, 3 + 3.25, 4 - 3.25, 4,
+  5, 5, 5, 5 + 1.25, 5, 5 + 1.25,
+  8, 6, 8 - 1.75, 8, 6 - 1.75, 6,
+  9, 7, 9 - 2.75, 9, 7, 7 + 2.75
+)
+
+dispersion_demo_df %>%
+  mutate(
+    side_len = abs(x - mean(x))
+  ) %>%
+  ggplot(aes(x = x, y = y)) +
+  geom_point() +
+  geom_vline(aes(xintercept = mean(x)), color = "red", linetype = "dashed") +
+  geom_segment(aes(x = x, xend = mean(x), y = y, yend = y), color = "blue") +
+  geom_rect(aes(
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax
+  ), fill = "blue", alpha = 0.3, data = dispersion_sq_df) +
+  ylim(dispersion_demo_config$mean_y - 5, dispersion_demo_config$mean_y + 5) +
+  xlim(0, 10) +
+  theme(
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank()
+  ) +
+  coord_fixed()
+```
+
+## Dispersion Tendency - Intuition
+
+```{r, echo=FALSE}
+dispersion_demo_df %>%
+  mutate(
+    side_len = abs(x - mean(x))
+  ) %>%
+  ggplot(aes(x = x, y = y)) +
+  geom_point() +
+  geom_vline(aes(xintercept = mean(x)), color = "red", linetype = "dashed") +
+  geom_segment(aes(x = x, xend = mean(x), y = y, yend = y), color = "blue") +
+  geom_rect(aes(
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax
+  ), fill = "darkblue", data = tribble(
+    ~x, ~y, ~xmin, ~xmax, ~ymin, ~ymax,
+    0, 0, 0, 2.38, 8, 8 + 2.38
+  )) +
+  geom_text(
+    aes(x = 1.19, y = 7.5, label = "Variance"),
+    color = "darkblue"
+  ) +
+  geom_rect(aes(
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax
+  ), fill = "blue", alpha = 0.3, data = dispersion_sq_df) +
+  ylim(dispersion_demo_config$mean_y - 5, dispersion_demo_config$mean_y + 5) +
+  xlim(0, 10) +
+  theme(
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank()
+  ) +
+  coord_fixed()
+```
+
+## Practice
+
+Now, let's finish Q1 - Q5. 
+
+Questions 1 to 5 are intended to be done by hand. We will check the results in R subsequently.
+
+## pnorm
+
+```{r, echo=FALSE}
+visualize_pnorm <- function(q_value) {
+  tibble(
+    x = seq(-4, 4, 0.01),
+    d = dnorm(x)
+  ) %>%
+    ggplot(aes(x = x)) +
+    geom_line(aes(y = d), color = "blue") +
+    geom_ribbon(
+      aes(ymin = 0, ymax = d),
+      data = . %>% filter(x <= q_value),
+      alpha = 0.3,
+      fill = "red",
+    ) +
+    geom_vline(xintercept = q_value) +
+    geom_text(
+      x = q_value,
+      hjust = 1,
+      vjust = 1,
+      y = 0.1,
+      label = paste0("pnorm(", q_value, ") = ", round(pnorm(q_value), 2)),
+      color = "red",
+    ) +
+    labs(
+      x = "z-score",
+      y = "",
+      title = paste0("Given z-score (black line): ", q_value, ", what is the probability (red)?"),
+    ) +
+    theme(
+      axis.ticks.y = element_blank(),
+      axis.text.y = element_blank(),
+      axis.title.y = element_blank()
+    )
+}
+
+visualize_qnorm <- function(p_value) {
+  tibble(
+    x = seq(-4, 4, 0.01),
+    d = dnorm(x)
+  ) %>%
+    ggplot(aes(x = x)) +
+    geom_line(aes(y = d), color = "blue") +
+    geom_vline(xintercept = qnorm(p_value), color = "red") +
+    geom_ribbon(
+      aes(ymin = 0, ymax = d),
+      data = . %>% filter(x <= qnorm(p_value)),
+      alpha = 0.3,
+    ) +
+    geom_text(
+      x = qnorm(p_value),
+      y = 0.1,
+      hjust = 1,
+      vjust = 1,
+      label = paste0("qnorm(", p_value, ") = ", round(qnorm(p_value), 2)),
+      color = "red",
+    ) +
+    labs(
+      x = "z-score",
+      y = "",
+      title = paste0("Given probability (gray area): ", p_value, ", what is the z-score (red)?"),
+    ) +
+    theme(
+      axis.ticks.y = element_blank(),
+      axis.text.y = element_blank(),
+      axis.title.y = element_blank()
+    )
+}
+```
+
+```{r, echo=FALSE}
+pnorm(1.28)
+visualize_pnorm(1.28)
+```
+
+## qnorm
+
+```{r, echo=FALSE}
+qnorm(0.95)
+visualize_qnorm(0.95)
+```
